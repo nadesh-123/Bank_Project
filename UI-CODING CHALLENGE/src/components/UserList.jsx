@@ -42,7 +42,7 @@ getUsers()
   </thead>
   <tbody>
     {
-      users.map((user,index)=>(<tr>
+      users.map((user,index)=>(<tr key={index}>
       <th scope="row">{user.id}</th>
       <td>{user.name}</td>
       <td>{user.email}</td>
