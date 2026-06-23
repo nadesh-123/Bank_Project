@@ -1,0 +1,173 @@
+package com.BMS.service;
+
+import com.BMS.DTO.*;
+import com.BMS.Exception.ResourceNotFoundException;
+import com.BMS.enums.AccountType;
+import com.BMS.enums.Status;
+import com.BMS.mapper.MapAccountDto;
+import com.BMS.mapper.MapDtoAccount;
+import com.BMS.model.*;
+import com.BMS.repository.AccountRepository;
+import com.BMS.repository.UserRepository;
+import com.BMS.utility.AccountNumberGenerator;
+import com.BMS.utility.FileUtility;
+import lombok.AllArgsConstructor;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+@Service
+@AllArgsConstructor
+public class AccountService  {
+    private static final String UPLOAD_LOC = "D:/UploadFileApi";
+    MapAccountDto mapAccountDto;
+    AccountNumberGenerator accountNumberGenerator;
+    private final CustomerService customerService;
+    private final UserRepository userRepository;
+ private final BranchService branchService;
+    private final AccountRepository accountRepository;
+    MapDtoAccount mapDtoAccount;
+    private final  UserService userService;
+    private final AccountDeactivationRequestService accountDeactivationRequestService;
+   public void addAccount(DTOAccount Dtoaccount, String username, MultipartFile[] files) throws IOException {
+       upload(username,files);
+       Account account=mapDtoAccount.mapDtoAccount(Dtoaccount);
+       User user=userService.findByUsername(username).orElseThrow(()->new ResourceNotFoundException("invalid user name"));
+      Customer customer= customerService.getCustomerIdByUserId(user.getId());
+       System.out.println(customer.getLocation());
+
+      Branch branch=branchService.getBranchByLocation(customer.getLocation());
+       System.out.println(branch);
+       account.setCustomer(customerService.getCustomerByIdCustomer(customer.getId()));
+       account.setAccountNumber(accountNumberGenerator.generateAccountNumber());
+       account.setBranch(branch);
+       account.setBalance(0.0);
+       account.setStatus(Status.INACTIVE);
+       Account account1= accountRepository.save(account);
+       System.out.println(account1);
+    }
+
+
+
+    public AccountDtoPaginated getByStatus(Status status,int page,int size) {
+        Pageable pageable= PageRequest.of(page,size);
+       Page<Account> pages=accountRepository.findByStatusEmpNull(status,pageable);
+       List<AccountDTO> list= pages.getContent().stream().map(mapAccountDto::mapToDto).toList();
+       Long totalElements=pages.getTotalElements();
+       int totalPages=pages.getTotalPages();
+       return new AccountDtoPaginated(totalElements,totalPages,list);
+    }
+
+
+
+    public List<AccountDtoShow> getAllAccountsByUsername(String username) {
+     User user=  userService.findByUsername(username).orElseThrow(()->new ResourceNotFoundException("invalid user name"));
+       List<Account> list=accountRepository.findByCustomerUserId(user.getId());
+
+          return list.stream().map((k)-> MapAccountDto.mapAccountToDto(k)).toList();
+
+    }
+    public List<AccountDtoShow> getAllActiveAccountsByUsername(String username) {
+        User user=  userRepository.findByUsername(username).orElseThrow(()->new ResourceNotFoundException("invalid user name"));
+        List<Account> list=accountRepository.findByCustomerUserId(user.getId());
+
+        return list.stream().map((k)-> MapAccountDto.mapAccountToDto(k)).filter(mapAccountDto->mapAccountDto.status().equals(Status.ACTIVE)).toList();
+
+    }
+
+
+
+
+    public List<AccountDtoShow> getAccountByType(AccountType accountType) {
+      List<Account> list= accountRepository.findByAccounttype(accountType);
+        return list.stream().map((k)-> MapAccountDto.mapAccountToDto(k)).toList();
+    }
+
+    public void saveLoanAccount(Account account) {
+       accountRepository.save(account);
+    }
+
+public void upload(String username, MultipartFile[] files) throws IOException {
+
+    Customer customer = customerService.getByUsername(username);
+    System.out.println(customer);
+    String uniqueFolderName = username + "_files";
+    Path userUploadDir = Paths.get(UPLOAD_LOC).resolve(uniqueFolderName);
+    if (!Files.exists(userUploadDir)) {
+        Files.createDirectories(userUploadDir);
+    }
+    for (MultipartFile file : files) {
+        if (file.isEmpty()) continue; // Skip empty uploads
+        FileUtility.validateFile(file);
+        String fileName = file.getOriginalFilename();
+        Path destinationPath = userUploadDir.resolve(fileName);
+        System.out.println(fileName);
+        Files.copy(file.getInputStream(), destinationPath, StandardCopyOption.REPLACE_EXISTING);
+    }
+
+    System.out.println();
+    customer.setDocumentsPath(userUploadDir.toString());
+    customerService.save(customer);
+}
+
+
+    public Account getAccountByAccountNumber(String s) {
+       return accountRepository.findByAccountNumber(s).orElseThrow(()->new ResourceNotFoundException("invalid accno"));
+    }
+
+    public int getActiveCount(int id) {
+      return accountRepository.countActiveAccountsByEmployee(Status.ACTIVE,id);
+    }
+
+    public int getInActiveCount(int id) {
+       return accountRepository.countInActiveAccountsByEmployee(Status.INACTIVE,id);
+    }
+
+    public int findAccountRequests() {
+      return accountRepository.getAccountRequestCount();
+    }
+
+    public void deactivateAccount(String accountNumber) {
+       accountDeactivationRequestService.postRequest(accountNumber);
+    }
+
+    public AccountAllowedDto getAllowedAccount(String name) {
+      List<AccountType> list =accountRepository.findAllowedAccounts(Status.ACTIVE,name);
+        List<AccountType> list1 = Arrays.asList(
+                AccountType.SAVINGS_ACCOUNT,
+                AccountType.CURRENT_ACCOUNT,
+                AccountType.FIXED_DEPOSIT
+        );
+        List<AccountType> result = new ArrayList<>(list1);
+        result.removeAll(list);
+        return new AccountAllowedDto(result);
+    }
+
+    public AccountStatForAdminDto getStat() {
+       List<AccountStatDto> list=accountRepository.getStat(Status.ACTIVE);
+        List<AccountType> accountTypeList=new ArrayList<>();
+        List<Long> count=new ArrayList<>();
+        list.forEach(k -> {
+            accountTypeList.add(k.accountType());
+            count.add(k.count());
+        });
+        return new AccountStatForAdminDto(accountTypeList,count);
+    }
+
+    public long getTotalActiveCount() {
+       return accountRepository.getTotalActiveCount(Status.ACTIVE);
+    }
+}

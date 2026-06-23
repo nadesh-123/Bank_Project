@@ -1,0 +1,28 @@
+package com.BMS.repository;
+
+import com.BMS.enums.Status;
+import com.BMS.model.Employee;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+
+import java.util.Optional;
+
+public interface EmployeeRepository extends JpaRepository<Employee,Integer> {
+    Optional<Employee> findByName(String name);
+@Query("""
+        select e from Employee e 
+        where e.user.username=?1
+        """)
+    Employee findByEmpUserName(String username);
+
+    Employee findByUserUsername(String username);
+@Query("""
+        select count(e) from Employee e
+        where e.user.status=?1
+        """)
+    long getAllActive(Status status);
+
+    Page<Employee> findByUserStatus(Status status, Pageable pageable);
+}

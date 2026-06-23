@@ -1,0 +1,33 @@
+package com.BMS.model;
+
+import com.BMS.enums.LoanStatus;
+import com.BMS.enums.LoanType;
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.time.Instant;
+
+@Entity
+@Getter
+@Setter
+public class Loan {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int loanId;
+    @Enumerated(EnumType.STRING)
+    private LoanType loanType;
+    private double interestRate;
+    private double loanAmount;
+    private int tenureYears;
+    private double emiAmount;
+    @CreationTimestamp
+    private Instant loanStartDate;
+    private Instant loanEndDate;
+    @Enumerated(EnumType.STRING)
+    private LoanStatus status;
+
+    @ManyToOne
+    private Account account;
+}

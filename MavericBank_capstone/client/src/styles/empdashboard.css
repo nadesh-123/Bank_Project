@@ -1,0 +1,94 @@
+.dashboard-wrapper {
+    background: #f5f7fb;
+    min-height: 100vh;
+    padding: 30px;
+}
+
+
+/* ===== Statistics Cards ===== */
+
+.stat-card {
+    background: white;
+    border-radius: 20px;
+    padding: 25px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+
+    box-shadow:
+        0 5px 15px rgba(0,0,0,.08);
+
+    transition: .3s;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+}
+
+.icon {
+    width: 70px;
+    height: 70px;
+    border-radius: 18px;
+
+    color: white;
+    font-size: 28px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.stat-card h6 {
+    color: gray;
+    margin-bottom: 8px;
+}
+
+.stat-card h2 {
+    font-weight: 700;
+}
+
+
+
+/* ===== Charts ===== */
+
+.chart-card {
+    background: white;
+    border-radius: 20px;
+    padding: 25px;
+    box-shadow:
+        0 5px 15px rgba(0,0,0,.08);
+
+    height: 450px;
+}
+
+.chart-header {
+    border-bottom: 1px solid #ececec;
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+}
+
+.chart-body {
+    height: 340px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+
+
+/* ===== Table ===== */
+
+.table-card {
+    background: white;
+    border-radius: 20px;
+    padding: 25px;
+    box-shadow:
+        0 5px 15px rgba(0,0,0,.08);
+}
+
+.table-header {
+    border-bottom: 1px solid #ececec;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+}
